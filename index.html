@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Minha agenda de turnos</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #18181b; --muted: #71717a; --border: #e4e4e7;
+    --card: #fafafa; --primary: #18181b; --primary-fg: #ffffff;
+    --9a: #fbcfe8; --12a: #bbf7d0; --T: #e879f9; --H: #fde047; --O: #bfdbfe;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #09090b; --fg: #fafafa; --muted: #a1a1aa; --border: #27272a;
+      --card: #18181b; --primary: #fafafa; --primary-fg: #18181b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg); color: var(--fg); font-size: 14px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  h1 { font-size: 16px; margin: 0; }
+  main { padding: 16px; max-width: 720px; margin: 0 auto; }
+  button, select, textarea { font: inherit; color: inherit; }
+  button { border: 1px solid var(--border); background: var(--bg); border-radius: 6px;
+    padding: 6px 12px; cursor: pointer; min-height: 36px; }
+  button:hover { background: var(--card); }
+  button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+  button.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
+  button.primary:hover { opacity: .9; background: var(--primary); }
+  textarea, select { width: 100%; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px; background: var(--bg); }
+  textarea { min-height: 120px; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; background: var(--bg); }
+  .card h2 { font-size: 14px; margin: 0 0 8px; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+  .nav strong { text-transform: capitalize; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .dow { text-align: center; font-size: 11px; color: var(--muted); padding: 4px 0; }
+  .day { min-height: 56px; border: 1px solid var(--border); border-radius: 6px; padding: 4px;
+    background: var(--bg); text-align: left; display: flex; flex-direction: column; justify-content: space-between;
+    align-items: stretch; min-height: 56px; padding: 4px; }
+  .day .num { font-size: 12px; font-variant-numeric: tabular-nums; }
+  .day .code { font-size: 12px; font-weight: 600; border-radius: 4px; padding: 2px 4px; text-align: center; color: #18181b; }
+  .day.out { opacity: .35; }
+  .day.today .num { text-decoration: underline; font-weight: 700; }
+  .day.sel { outline: 2px solid var(--fg); outline-offset: 1px; }
+  .c-9a { background: var(--9a); } .c-12a { background: var(--12a); }
+  .c-T { background: var(--T); } .c-H { background: var(--H); } .c-O { background: var(--O); }
+  .legend { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .legend span { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .err { color: #b91c1c; font-size: 12px; margin-top: 6px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Minha agenda de turnos</h1>
+  <div class="row">
+    <button id="btnImport">Importar lista</button>
+    <button id="btnExport">Salvar backup</button>
+    <button id="btnRestore">Restaurar backup</button>
+    <input type="file" id="restoreFile" accept="application/json,.json" class="hidden" aria-label="Arquivo de backup" />
+    <button id="btnClear">Apagar tudo</button>
+  </div>
+</header>
+
+<main>
+  <section id="importBox" class="card hidden" aria-labelledby="importTitle">
+    <h2 id="importTitle">Colar a lista</h2>
+    <p class="muted">Uma linha por dia, no formato <code>DD/MM/AAAA: código</code>. Códigos: 9a, 12a, T, H, O.</p>
+    <textarea id="importText" placeholder="16/11/2026: 9a&#10;17/11/2026: T&#10;18/11/2026: O" aria-label="Lista de turnos"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="btnDoImport" class="primary">Importar</button>
+      <button id="btnCancelImport">Cancelar</button>
+    </div>
+    <div id="importMsg" class="err" role="alert"></div>
+  </section>
+
+  <section class="card" aria-label="Calendário">
+    <div class="nav">
+      <button id="prev" aria-label="Mês anterior">&larr;</button>
+      <strong id="monthLabel"></strong>
+      <button id="next" aria-label="Próximo mês">&rarr;</button>
+    </div>
+    <div class="grid" id="dows"></div>
+    <div class="grid" id="calendar"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section id="editBox" class="card hidden" aria-labelledby="editTitle">
+    <h2 id="editTitle"></h2>
+    <p class="muted" id="editInfo"></p>
+    <div class="row">
+      <select id="editCode" aria-label="Turno do dia" style="max-width:260px">
+        <option value="">Sem turno (Off)</option>
+        <option value="9a">9a (09:00)</option>
+        <option value="12a">12a (12:00)</option>
+        <option value="T">T Training 9-6</option>
+        <option value="H">H Feriado</option>
+        <option value="O">O Folga</option>
+      </select>
+      <button id="btnSaveDay" class="primary">Salvar dia</button>
+      <button id="btnCloseDay">Fechar</button>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var KEY = "minha-agenda-de-turnos-v1";
+  var CODES = ["9a", "12a", "T", "H", "O"];
+  var LABELS = { "9a": "9a", "12a": "12a", T: "Training", H: "Feriado", O: "Folga" };
+  var TIMES = { "9a": "09:00", "12a": "12:00", T: "09:00 - 18:00" };
+  var DOWS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+  var MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+
+  var data = load();
+  var view = new Date();
+  view = new Date(view.getFullYear(), view.getMonth(), 1);
+  var selected = null;
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
+  }
+  function isRealDate(y, m, d) {
+    var x = new Date(y, m - 1, d);
+    return x.getFullYear() === y && x.getMonth() === m - 1 && x.getDate() === d;
+  }
+  function normalizeCode(raw) {
+    var t = raw.replace(/^[-\u2013\u2014:=]\s*(?=\S)/, "").toLowerCase().replace(/\s+/g, "");
+    if (t === "9a" || t === "12a") return t;
+    if (/^(t|t9-6|training|training9-6|treino|treino9-6)$/.test(t)) return "T";
+    if (/^(h|holiday|feriado)$/.test(t)) return "H";
+    if (/^(o|off|folga)$/.test(t)) return "O";
+    if (t === "-") return "";
+    return null;
+  }
+  function parseImport(text) {
+    var out = {}, invalid = [];
+    var re = /^\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})\s*(?:[:=;,\t]|\s)\s*(.*?)\s*$/;
+    text.split(/\r?\n/).forEach(function (line) {
+      if (!line.trim()) return;
+      var m = re.exec(line);
+      var code = m ? normalizeCode(m[2]) : null;
+      if (!m || code === null) { invalid.push(line.trim().slice(0, 60)); return; }
+      var y, mo, d, raw = m[1];
+      if (/^\d{4}/.test(raw)) { var p = raw.split("-").map(Number); y = p[0]; mo = p[1]; d = p[2]; }
+      else { var q = raw.split(/[\/.\-]/).map(Number); d = q[0]; mo = q[1]; y = q[2]; }
+      if (!isRealDate(y, mo, d)) { invalid.push(line.trim().slice(0, 60)); return; }
+      out[y + "-" + pad(mo) + "-" + pad(d)] = code;
+    });
+    return { entries: out, invalid: invalid };
+  }
+
+  var el = function (id) { return document.getElementById(id); };
+
+  function renderLegend() {
+    el("legend").innerHTML = CODES.map(function (c) {
+      return '<span><i class="c-' + c + '"></i>' + c + (LABELS[c] && c !== "9a" && c !== "12a" ? " " + LABELS[c] : "") + "</span>";
+    }).join("");
+  }
+
+  function renderCalendar() {
+    el("monthLabel").textContent = MONTHS[view.getMonth()] + " " + view.getFullYear();
+    el("dows").innerHTML = DOWS.map(function (d) { return '<div class="dow">' + d + "</div>"; }).join("");
+    var first = new Date(view.getFullYear(), view.getMonth(), 1);
+    var offset = (first.getDay() + 6) % 7;
+    var start = new Date(view.getFullYear(), view.getMonth(), 1 - offset);
+    var today = iso(new Date());
+    var html = "";
+    for (var i = 0; i < 42; i++) {
+      var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      var key = iso(d);
+      var code = data[key];
+      var cls = "day";
+      if (d.getMonth() !== view.getMonth()) cls += " out";
+      if (key === today) cls += " today";
+      if (key === selected) cls += " sel";
+      var label = code ? code : (d.getMonth() === view.getMonth() ? "O" : "");
+      var badge = label ? '<span class="code c-' + label + '">' + label + "</span>" : "";
+      html += '<button class="' + cls + '" data-key="' + key + '" aria-label="' + d.getDate() + " " + MONTHS[d.getMonth()] + ", " + (label || "sem turno") + '"><span class="num">' + d.getDate() + "</span>" + badge + "</button>";
+    }
+    el("calendar").innerHTML = html;
+  }
+
+  function openDay(key) {
+    selected = key;
+    var parts = key.split("-").map(Number);
+    var d = new Date(parts[0], parts[1] - 1, parts[2]);
+    el("editTitle").textContent = d.getDate() + " de " + MONTHS[d.getMonth()] + " de " + d.getFullYear();
+    var code = data[key] || "";
+    el("editCode").value = code;
+    el("editInfo").textContent = code && TIMES[code] ? "Horário: " + TIMES[code] : "";
+    el("editBox").classList.remove("hidden");
+    renderCalendar();
+    el("editCode").focus();
+  }
+
+  el("calendar").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-key]");
+    if (b) openDay(b.getAttribute("data-key"));
+  });
+  el("prev").onclick = function () { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); renderCalendar(); };
+  el("next").onclick = function () { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); renderCalendar(); };
+  el("btnSaveDay").onclick = function () {
+    if (!selected) return;
+    var v = el("editCode").value;
+    if (v) data[selected] = v; else delete data[selected];
+    save();
+    el("editBox").classList.add("hidden");
+    selected = null;
+    renderCalendar();
+  };
+  el("btnCloseDay").onclick = function () {
+    el("editBox").classList.add("hidden");
+    selected = null;
+    renderCalendar();
+  };
+  el("btnImport").onclick = function () { el("importBox").classList.toggle("hidden"); el("importMsg").textContent = ""; };
+  el("btnCancelImport").onclick = function () { el("importBox").classList.add("hidden"); };
+  el("btnDoImport").onclick = function () {
+    var res = parseImport(el("importText").value);
+    var n = Object.keys(res.entries).length;
+    if (n === 0) {
+      el("importMsg").textContent = "Nenhuma linha válida. Use o formato DD/MM/AAAA: código.";
+      return;
+    }
+    Object.keys(res.entries).forEach(function (k) {
+      if (res.entries[k]) data[k] = res.entries[k]; else delete data[k];
+    });
+    save();
+    el("importText").value = "";
+    el("importBox").classList.add("hidden");
+    el("importMsg").textContent = "";
+    if (res.invalid.length) alert(n + " dias importados. Linhas ignoradas: " + res.invalid.length);
+    renderCalendar();
+  };
+  el("btnClear").onclick = function () {
+    if (confirm("Apagar todos os turnos salvos neste aparelho?")) { data = {}; save(); selected = null; el("editBox").classList.add("hidden"); renderCalendar(); }
+  };
+
+  el("btnExport").onclick = function () {
+    var payload = { app: "minha-agenda-de-turnos", version: 1, savedAt: new Date().toISOString(), days: data };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var stamp = iso(new Date());
+    a.href = url;
+    a.download = "backup-agenda-turnos-" + stamp + ".json";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  };
+  el("btnRestore").onclick = function () { el("restoreFile").click(); };
+  el("restoreFile").onchange = function (e) {
+    var file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var obj = JSON.parse(reader.result);
+        var days = obj && obj.app === "minha-agenda-de-turnos" && obj.days ? obj.days : null;
+        if (!days) throw new Error("formato");
+        var clean = {}, count = 0;
+        Object.keys(days).forEach(function (k) {
+          if (/^\d{4}-\d{2}-\d{2}$/.test(k) && CODES.indexOf(days[k]) !== -1) { clean[k] = days[k]; count++; }
+        });
+        if (!confirm("Restaurar o backup substitui os turnos atuais por " + count + " dias do arquivo. Continuar?")) return;
+        data = clean;
+        save();
+        selected = null;
+        el("editBox").classList.add("hidden");
+        renderCalendar();
+      } catch (err) {
+        alert("Este arquivo não é um backup válido desta agenda.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Pede ao navegador para não apagar os dados sem aviso (quando suportado).
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(function () {});
+  }
+
+  renderLegend();
+  renderCalendar();
+})();
+</script>
+</body>
+</html>
