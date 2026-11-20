@@ -56,6 +56,31 @@
   .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
   .err { color: #b91c1c; font-size: 12px; margin-top: 6px; }
   .hidden { display: none; }
+  /* Visão de semana: lista vertical, legível no celular */
+  #calendar.week { grid-template-columns: 1fr; gap: 8px; }
+  #calendar.week .day { flex-direction: row; align-items: center; justify-content: space-between;
+    min-height: 60px; padding: 10px 14px; }
+  #calendar.week .day .num { font-size: 18px; font-weight: 600; }
+  #calendar.week .day .wd { font-size: 14px; color: var(--muted); margin-right: auto; margin-left: 10px; }
+  #calendar.week .day .code { font-size: 16px; min-width: 64px; padding: 6px 10px; }
+  #dows.hidden-week { display: none; }
+  /* Visão de mês: células maiores */
+  .day { min-height: 68px; padding: 4px 2px; }
+  .day .num { font-size: 15px; font-weight: 600; }
+  .day .code { font-size: 13px; padding: 3px 0; }
+  .grid { gap: 4px; }
+  .dow { font-size: 13px; font-weight: 600; }
+  .nav strong { font-size: 16px; }
+  .nav button { min-width: 44px; min-height: 44px; font-size: 18px; }
+  button { min-height: 40px; }
+  @media (max-width: 480px) {
+    header { padding: 10px 12px; }
+    h1 { font-size: 17px; width: 100%; }
+    main { padding: 10px; }
+    .day { min-height: 60px; }
+    .day .code { font-size: 12px; }
+    .legend { font-size: 13px; }
+  }
 </style>
 </head>
 <body>
@@ -190,7 +215,8 @@
     if (key === selected) cls += " sel";
     var label = code ? code : (!outside ? "O" : "");
     var badge = label ? '<span class="code c-' + label + '">' + label + "</span>" : "";
-    return '<button class="' + cls + '" data-key="' + key + '" aria-label="' + d.getDate() + " " + MONTHS[d.getMonth()] + ", " + (label || "sem turno") + '"><span class="num">' + d.getDate() + "</span>" + badge + "</button>";
+    var wd = mode === "week" ? '<span class="wd">' + DOWS[(d.getDay() + 6) % 7] + "</span>" : "";
+    return '<button class="' + cls + '" data-key="' + key + '" aria-label="' + d.getDate() + " " + MONTHS[d.getMonth()] + ", " + (label || "sem turno") + '"><span class="num">' + d.getDate() + "</span>" + wd + badge + "</button>";
   }
   function renderCalendar() {
     el("dows").innerHTML = DOWS.map(function (d) { return '<div class="dow">' + d + "</div>"; }).join("");
@@ -199,6 +225,8 @@
       var end = addD(weekStart, 6);
       el("monthLabel").textContent = weekStart.getDate() + "/" + pad(weekStart.getMonth() + 1) + " a " + end.getDate() + "/" + pad(end.getMonth() + 1) + " de " + end.getFullYear();
       for (var i = 0; i < 7; i++) html += cellHtml(addD(weekStart, i), false);
+      el("calendar").classList.add("week");
+      el("dows").classList.add("hidden-week");
       el("btnMode").textContent = "Ver mês";
       el("btnMode").setAttribute("aria-pressed", "true");
     } else {
@@ -209,6 +237,8 @@
         var d = addD(start, j);
         html += cellHtml(d, d.getMonth() !== view.getMonth());
       }
+      el("calendar").classList.remove("week");
+      el("dows").classList.remove("hidden-week");
       el("btnMode").textContent = "Ver semana";
       el("btnMode").setAttribute("aria-pressed", "false");
     }
