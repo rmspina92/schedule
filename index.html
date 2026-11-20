@@ -87,6 +87,8 @@
   .err { color:#dc2626; font-size:13px; margin-top:8px; }
 
   /* folha para escolher o turno */
+  .toast { position:fixed; left:12px; right:12px; bottom:calc(12px + env(safe-area-inset-bottom)); z-index:40; max-width:496px; margin:0 auto;
+    background:var(--primary); color:var(--primary-fg); padding:12px 14px; border-radius:12px; font-size:14px; }
   .overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:30; }
   .sheet { position:fixed; left:0; right:0; bottom:0; z-index:31; background:var(--bg); border-radius:18px 18px 0 0;
     padding:16px 16px calc(16px + env(safe-area-inset-bottom)); max-width:520px; margin:0 auto; box-shadow:0 -8px 30px rgba(0,0,0,.25); }
@@ -118,8 +120,8 @@
 
   <section id="importBox" class="card hidden" aria-labelledby="importTitle">
     <h2 id="importTitle">Importar lista</h2>
-    <p class="muted">Cole os dias no formato <b>DD/MM/AAAA: código</b>. Códigos: 9a, 12a, T, H, O.</p>
-    <textarea id="importText" placeholder="16/11/2026: 9a&#10;17/11/2026: T" aria-label="Lista de turnos"></textarea>
+    <p class="muted">Cole os dias do jeito que vier, em linhas separadas ou tudo junto. Exemplo: <b>16/11/2026: 9a 17/11/2026: T 18/11/2026: BH</b></p>
+    <textarea id="importText" placeholder="16/11/2026: 9a 17/11/2026: T 18/11/2026: BH" aria-label="Lista de turnos"></textarea>
     <div class="row">
       <button id="btnCancelImport">Cancelar</button>
       <button id="btnDoImport" class="primary">Importar</button>
@@ -148,6 +150,7 @@
   <div class="legend" id="legend"></div>
 </div>
 
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 <div id="overlay" class="overlay hidden"></div>
 <div id="sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
   <h2 id="sheetTitle"></h2>
@@ -221,23 +224,38 @@
     if (/^[a-z]{1,3}$/.test(t)) return t.toUpperCase(); // BH, PL, C, ...
     return null;
   }
+  // Lê o texto inteiro, mesmo colado numa linha só: acha cada data e usa o que vem depois dela como código.
   function parseImport(text){
     var out={}, invalid=[];
-    var SPLIT=/(?<![\d\/.\-])(?=\d{4}-\d{2}-\d{2}\s*[:=;,\t\s]|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4}\s*[:=;,\t\s])/;
-    var ONE=/^\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})\s*(?:[:=;,\t]|\s)\s*(.*?)\s*$/;
-    text.split(/\r?\n/).forEach(function(line){
-      if(!line.trim()) return;
-      line.split(SPLIT).forEach(function(piece){
-        if(!piece.trim()) return;
-        var m=ONE.exec(piece), code=m?normalizeCode(m[2]):null;
-        if(!m||code===null){ invalid.push(piece.trim().slice(0,60)); return; }
-        var y,mo,d,raw=m[1];
-        if(/^\d{4}/.test(raw)){ var p=raw.split("-").map(Number); y=p[0];mo=p[1];d=p[2]; }
-        else { var q=raw.split(/[\/.\-]/).map(Number); d=q[0];mo=q[1];y=q[2]; }
-        if(!isRealDate(y,mo,d)){ invalid.push(piece.trim().slice(0,60)); return; }
-        out[y+"-"+pad(mo)+"-"+pad(d)] = code;
-      });
-    });
+    var DATE=/(\d{4})-(\d{1,2})-(\d{1,2})|(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4}|\d{2})|(\d{1,2})[\/.](\d{1,2})(?![\d\/.])/g;
+    var WD=/\s*(?:seg|ter|qua|qui|sex|s[aá]b|dom|mon|tue|wed|thu|fri|sat|sun)[a-zç\u00e1\u00e9\u00ed\u00f3\u00fa\.\-]*\s*$/i;
+    var found=[], m;
+    while((m=DATE.exec(text))!==null){
+      var y,mo,d;
+      if(m[1]){ y=+m[1]; mo=+m[2]; d=+m[3]; }
+      else if(m[4]){ d=+m[4]; mo=+m[5]; y=+m[6]; if(y<100) y+=2000; }
+      else { d=+m[7]; mo=+m[8]; y=null; }
+      found.push({ start:m.index, end:m.index+m[0].length, y:y, mo:mo, d:d, raw:m[0] });
+    }
+    var prevY=null, prevMo=null;
+    for(var i=0;i<found.length;i++){
+      var f=found[i];
+      var seg=text.slice(f.end, i+1<found.length ? found[i+1].start : text.length);
+      seg=seg.replace(/^[\s:=;,\t\-\u2013\u2014|>]+/,"").replace(/[\s;,|]+$/,"").replace(WD,"").replace(/[\s;,|]+$/,"");
+      var year=f.y;
+      if(year===null){
+        year = prevY!==null ? prevY : new Date().getFullYear();
+        if(prevMo!==null && prevMo-f.mo>6) year++;
+      }
+      if(!isRealDate(year,f.mo,f.d)){ invalid.push(f.raw+(seg?" "+seg:"")); continue; }
+      var code = seg==="" ? "" : normalizeCode(seg);
+      if(code===null){ var first=seg.split(/\s+/)[0]; code=normalizeCode(first); }
+      if(code===null){ invalid.push((f.raw+" "+seg).slice(0,60)); continue; }
+      prevY=year; prevMo=f.mo;
+      out[year+"-"+pad(f.mo)+"-"+pad(f.d)] = code;
+    }
+    var rest=text.replace(DATE,"").replace(/[\s\S]*/,function(){return "";});
+    if(!found.length && text.trim()) invalid.push(text.trim().slice(0,60));
     return { entries:out, invalid:invalid };
   }
 
@@ -359,14 +377,21 @@
   $("btnCancelImport").onclick = function(){ $("importBox").classList.add("hidden"); };
   $("btnDoImport").onclick = function(){
     var res=parseImport($("importText").value), keys=Object.keys(res.entries);
-    if(!keys.length){ $("importMsg").textContent="Nenhuma linha válida. Use o formato DD/MM/AAAA: código."; return; }
+    if(!keys.length){ $("importMsg").textContent="Não encontrei nenhuma data. Use algo como 16/11/2026: 9a."; return; }
     keys.forEach(function(k){ if(res.entries[k] && res.entries[k]!=="O") data[k]=res.entries[k]; else delete data[k]; });
     save();
     $("importText").value=""; $("importBox").classList.add("hidden"); $("importMsg").textContent="";
-    if(res.invalid.length) alert(keys.length+" dias importados. Linhas ignoradas: "+res.invalid.length);
-    var first=keys.sort()[0]; anchor=parseKey(first);
+    keys.sort(); anchor=parseKey(keys[0]);
+    var msg = keys.length+" dias importados";
+    if(res.invalid.length) msg += " · "+res.invalid.length+" não reconhecidos: "+res.invalid.slice(0,3).join(" | ");
+    showToast(msg);
     render();
   };
+  var toastTimer=null;
+  function showToast(t){
+    var el=$("toast"); el.textContent=t; el.classList.remove("hidden");
+    clearTimeout(toastTimer); toastTimer=setTimeout(function(){ el.classList.add("hidden"); }, 7000);
+  }
   $("btnClear").onclick = function(){
     closeMenu();
     if(confirm("Apagar todos os turnos salvos neste aparelho?")){ data={}; save(); render(); }
