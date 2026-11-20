@@ -62,6 +62,7 @@
 <header>
   <h1>Minha agenda de turnos</h1>
   <div class="row">
+    <button id="btnMode">Ver semana</button>
     <button id="btnImport">Importar lista</button>
     <button id="btnExport">Salvar backup</button>
     <button id="btnRestore">Restaurar backup</button>
@@ -124,6 +125,8 @@
   var view = new Date();
   view = new Date(view.getFullYear(), view.getMonth(), 1);
   var selected = null;
+  var mode = "month";
+  var weekStart = startOfWeekD(new Date());
 
   function pad(n) { return String(n).padStart(2, "0"); }
   function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
@@ -148,17 +151,21 @@
   }
   function parseImport(text) {
     var out = {}, invalid = [];
-    var re = /^\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})\s*(?:[:=;,\t]|\s)\s*(.*?)\s*$/;
+    var SPLIT = /(?<![\d\/.\-])(?=\d{4}-\d{2}-\d{2}\s*[:=;,\t\s]|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4}\s*[:=;,\t\s])/;
+    var ONE = /^\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})\s*(?:[:=;,\t]|\s)\s*(.*?)\s*$/;
     text.split(/\r?\n/).forEach(function (line) {
       if (!line.trim()) return;
-      var m = re.exec(line);
-      var code = m ? normalizeCode(m[2]) : null;
-      if (!m || code === null) { invalid.push(line.trim().slice(0, 60)); return; }
-      var y, mo, d, raw = m[1];
-      if (/^\d{4}/.test(raw)) { var p = raw.split("-").map(Number); y = p[0]; mo = p[1]; d = p[2]; }
-      else { var q = raw.split(/[\/.\-]/).map(Number); d = q[0]; mo = q[1]; y = q[2]; }
-      if (!isRealDate(y, mo, d)) { invalid.push(line.trim().slice(0, 60)); return; }
-      out[y + "-" + pad(mo) + "-" + pad(d)] = code;
+      line.split(SPLIT).forEach(function (piece) {
+        if (!piece.trim()) return;
+        var m = ONE.exec(piece);
+        var code = m ? normalizeCode(m[2]) : null;
+        if (!m || code === null) { invalid.push(piece.trim().slice(0, 60)); return; }
+        var y, mo, d, raw = m[1];
+        if (/^\d{4}/.test(raw)) { var p = raw.split("-").map(Number); y = p[0]; mo = p[1]; d = p[2]; }
+        else { var q = raw.split(/[\/.\-]/).map(Number); d = q[0]; mo = q[1]; y = q[2]; }
+        if (!isRealDate(y, mo, d)) { invalid.push(piece.trim().slice(0, 60)); return; }
+        out[y + "-" + pad(mo) + "-" + pad(d)] = code;
+      });
     });
     return { entries: out, invalid: invalid };
   }
@@ -171,25 +178,39 @@
     }).join("");
   }
 
+  function addD(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
+  function startOfWeekD(d) { return addD(d, -((d.getDay() + 6) % 7)); }
+  function parseKey(key) { var p = key.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function cellHtml(d, outside) {
+    var key = iso(d);
+    var code = data[key];
+    var cls = "day";
+    if (outside) cls += " out";
+    if (key === iso(new Date())) cls += " today";
+    if (key === selected) cls += " sel";
+    var label = code ? code : (!outside ? "O" : "");
+    var badge = label ? '<span class="code c-' + label + '">' + label + "</span>" : "";
+    return '<button class="' + cls + '" data-key="' + key + '" aria-label="' + d.getDate() + " " + MONTHS[d.getMonth()] + ", " + (label || "sem turno") + '"><span class="num">' + d.getDate() + "</span>" + badge + "</button>";
+  }
   function renderCalendar() {
-    el("monthLabel").textContent = MONTHS[view.getMonth()] + " " + view.getFullYear();
     el("dows").innerHTML = DOWS.map(function (d) { return '<div class="dow">' + d + "</div>"; }).join("");
-    var first = new Date(view.getFullYear(), view.getMonth(), 1);
-    var offset = (first.getDay() + 6) % 7;
-    var start = new Date(view.getFullYear(), view.getMonth(), 1 - offset);
-    var today = iso(new Date());
     var html = "";
-    for (var i = 0; i < 42; i++) {
-      var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-      var key = iso(d);
-      var code = data[key];
-      var cls = "day";
-      if (d.getMonth() !== view.getMonth()) cls += " out";
-      if (key === today) cls += " today";
-      if (key === selected) cls += " sel";
-      var label = code ? code : (d.getMonth() === view.getMonth() ? "O" : "");
-      var badge = label ? '<span class="code c-' + label + '">' + label + "</span>" : "";
-      html += '<button class="' + cls + '" data-key="' + key + '" aria-label="' + d.getDate() + " " + MONTHS[d.getMonth()] + ", " + (label || "sem turno") + '"><span class="num">' + d.getDate() + "</span>" + badge + "</button>";
+    if (mode === "week") {
+      var end = addD(weekStart, 6);
+      el("monthLabel").textContent = weekStart.getDate() + "/" + pad(weekStart.getMonth() + 1) + " a " + end.getDate() + "/" + pad(end.getMonth() + 1) + " de " + end.getFullYear();
+      for (var i = 0; i < 7; i++) html += cellHtml(addD(weekStart, i), false);
+      el("btnMode").textContent = "Ver mês";
+      el("btnMode").setAttribute("aria-pressed", "true");
+    } else {
+      el("monthLabel").textContent = MONTHS[view.getMonth()] + " " + view.getFullYear();
+      var first = new Date(view.getFullYear(), view.getMonth(), 1);
+      var start = addD(first, -((first.getDay() + 6) % 7));
+      for (var j = 0; j < 42; j++) {
+        var d = addD(start, j);
+        html += cellHtml(d, d.getMonth() !== view.getMonth());
+      }
+      el("btnMode").textContent = "Ver semana";
+      el("btnMode").setAttribute("aria-pressed", "false");
     }
     el("calendar").innerHTML = html;
   }
@@ -211,8 +232,15 @@
     var b = e.target.closest("button[data-key]");
     if (b) openDay(b.getAttribute("data-key"));
   });
-  el("prev").onclick = function () { view = new Date(view.getFullYear(), view.getMonth() - 1, 1); renderCalendar(); };
-  el("next").onclick = function () { view = new Date(view.getFullYear(), view.getMonth() + 1, 1); renderCalendar(); };
+  el("prev").onclick = function () { if (mode === "week") weekStart = addD(weekStart, -7); else view = new Date(view.getFullYear(), view.getMonth() - 1, 1); renderCalendar(); };
+  el("next").onclick = function () { if (mode === "week") weekStart = addD(weekStart, 7); else view = new Date(view.getFullYear(), view.getMonth() + 1, 1); renderCalendar(); };
+  el("btnMode").onclick = function () {
+    mode = mode === "week" ? "month" : "week";
+    var anchor = selected ? parseKey(selected) : new Date();
+    if (mode === "week") weekStart = startOfWeekD(anchor);
+    else view = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    renderCalendar();
+  };
   el("btnSaveDay").onclick = function () {
     if (!selected) return;
     var v = el("editCode").value;
