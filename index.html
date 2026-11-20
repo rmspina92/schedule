@@ -2,359 +2,407 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#18181b" />
 <title>Minha agenda de turnos</title>
 <style>
   :root {
-    --bg: #ffffff; --fg: #18181b; --muted: #71717a; --border: #e4e4e7;
-    --card: #fafafa; --primary: #18181b; --primary-fg: #ffffff;
-    --9a: #fbcfe8; --12a: #bbf7d0; --T: #e879f9; --H: #fde047; --O: #bfdbfe;
+    --bg:#ffffff; --fg:#18181b; --muted:#71717a; --border:#e4e4e7; --card:#f4f4f5;
+    --primary:#18181b; --primary-fg:#ffffff;
+    --c9a:#fbcfe8; --c12a:#bbf7d0; --cT:#e879f9; --cH:#fde047; --cO:#bfdbfe;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #09090b; --fg: #fafafa; --muted: #a1a1aa; --border: #27272a;
-      --card: #18181b; --primary: #fafafa; --primary-fg: #18181b;
-    }
+    :root { --bg:#09090b; --fg:#fafafa; --muted:#a1a1aa; --border:#27272a; --card:#18181b;
+      --primary:#fafafa; --primary-fg:#18181b; }
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-    background: var(--bg); color: var(--fg); font-size: 14px; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 12px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
-  h1 { font-size: 16px; margin: 0; }
-  main { padding: 16px; max-width: 720px; margin: 0 auto; }
-  button, select, textarea { font: inherit; color: inherit; }
-  button { border: 1px solid var(--border); background: var(--bg); border-radius: 6px;
-    padding: 6px 12px; cursor: pointer; min-height: 36px; }
-  button:hover { background: var(--card); }
-  button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
-  button.primary { background: var(--primary); color: var(--primary-fg); border-color: var(--primary); }
-  button.primary:hover { opacity: .9; background: var(--primary); }
-  textarea, select { width: 100%; border: 1px solid var(--border); border-radius: 6px;
-    padding: 8px; background: var(--bg); }
-  textarea { min-height: 120px; font-family: ui-monospace, Menlo, Consolas, monospace; }
-  .card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; background: var(--bg); }
-  .card h2 { font-size: 14px; margin: 0 0 8px; }
-  .muted { color: var(--muted); font-size: 12px; }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
-  .nav strong { text-transform: capitalize; }
-  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-  .dow { text-align: center; font-size: 11px; color: var(--muted); padding: 4px 0; }
-  .day { min-height: 56px; border: 1px solid var(--border); border-radius: 6px; padding: 4px;
-    background: var(--bg); text-align: left; display: flex; flex-direction: column; justify-content: space-between;
-    align-items: stretch; min-height: 56px; padding: 4px; }
-  .day .num { font-size: 12px; font-variant-numeric: tabular-nums; }
-  .day .code { font-size: 12px; font-weight: 600; border-radius: 4px; padding: 2px 4px; text-align: center; color: #18181b; }
-  .day.out { opacity: .35; }
-  .day.today .num { text-decoration: underline; font-weight: 700; }
-  .day.sel { outline: 2px solid var(--fg); outline-offset: 1px; }
-  .c-9a { background: var(--9a); } .c-12a { background: var(--12a); }
-  .c-T { background: var(--T); } .c-H { background: var(--H); } .c-O { background: var(--O); }
-  .legend { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
-  .legend span { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; }
-  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-  .err { color: #b91c1c; font-size: 12px; margin-top: 6px; }
-  .hidden { display: none; }
-  /* Visão de semana: lista vertical, legível no celular */
-  #calendar.week { grid-template-columns: 1fr; gap: 8px; }
-  #calendar.week .day { flex-direction: row; align-items: center; justify-content: space-between;
-    min-height: 60px; padding: 10px 14px; }
-  #calendar.week .day .num { font-size: 18px; font-weight: 600; }
-  #calendar.week .day .wd { font-size: 14px; color: var(--muted); margin-right: auto; margin-left: 10px; }
-  #calendar.week .day .code { font-size: 16px; min-width: 64px; padding: 6px 10px; }
-  #dows.hidden-week { display: none; }
-  /* Visão de mês: células maiores */
-  .day { min-height: 68px; padding: 4px 2px; }
-  .day .num { font-size: 15px; font-weight: 600; }
-  .day .code { font-size: 13px; padding: 3px 0; }
-  .grid { gap: 4px; }
-  .dow { font-size: 13px; font-weight: 600; }
-  .nav strong { font-size: 16px; }
-  .nav button { min-width: 44px; min-height: 44px; font-size: 18px; }
-  button { min-height: 40px; }
-  @media (max-width: 480px) {
-    header { padding: 10px 12px; }
-    h1 { font-size: 17px; width: 100%; }
-    main { padding: 10px; }
-    .day { min-height: 60px; }
-    .day .code { font-size: 12px; }
-    .legend { font-size: 13px; }
-  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-size:16px;
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    padding-bottom:env(safe-area-inset-bottom); }
+  button,textarea { font:inherit; color:inherit; }
+  button { cursor:pointer; border:1px solid var(--border); background:var(--bg); border-radius:10px; min-height:44px; padding:0 14px; }
+  button:active { background:var(--card); }
+  button:focus-visible,summary:focus-visible,textarea:focus-visible { outline:2px solid var(--fg); outline-offset:2px; }
+  .hidden { display:none !important; }
+  .wrap { max-width:520px; margin:0 auto; padding:12px 12px 32px; }
+
+  /* topo */
+  .top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+  .top h1 { font-size:18px; margin:0; font-weight:700; }
+  .menu { position:relative; }
+  .menu summary { list-style:none; cursor:pointer; border:1px solid var(--border); border-radius:10px;
+    min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .menu summary::-webkit-details-marker { display:none; }
+  .menu .panel { position:absolute; right:0; top:50px; z-index:20; background:var(--bg); border:1px solid var(--border);
+    border-radius:12px; padding:6px; min-width:200px; box-shadow:0 8px 24px rgba(0,0,0,.18); display:flex; flex-direction:column; gap:2px; }
+  .menu .panel button { border:0; text-align:left; width:100%; }
+  .menu .panel .danger { color:#dc2626; }
+
+  /* alternar semana / mês */
+  .seg { display:grid; grid-template-columns:1fr 1fr; background:var(--card); border-radius:12px; padding:4px; margin-bottom:12px; }
+  .seg button { border:0; background:transparent; border-radius:9px; font-weight:600; color:var(--muted); }
+  .seg button[aria-pressed="true"] { background:var(--primary); color:var(--primary-fg); }
+
+  /* navegação */
+  .nav { display:grid; grid-template-columns:48px 1fr 48px; align-items:center; margin-bottom:10px; }
+  .nav button { padding:0; font-size:20px; }
+  .nav strong { text-align:center; font-size:17px; text-transform:capitalize; }
+  .today-btn { display:block; margin:-2px auto 10px; border:0; background:none; color:var(--muted); font-size:14px; min-height:32px; text-decoration:underline; }
+
+  /* semana: lista vertical */
+  .week { display:flex; flex-direction:column; gap:8px; }
+  .wrow { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%;
+    min-height:68px; padding:10px 14px; border-radius:14px; text-align:left; }
+  .wrow.today { border:2px solid var(--fg); }
+  .wdate { display:flex; align-items:baseline; gap:10px; }
+  .wnum { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; min-width:36px; }
+  .wname { font-size:15px; color:var(--muted); text-transform:capitalize; }
+  .wpill { border-radius:10px; padding:8px 14px; font-weight:700; font-size:17px; color:#18181b; text-align:center; min-width:84px; }
+  .wpill small { display:block; font-weight:500; font-size:12px; opacity:.8; }
+
+  /* mês: grade que cabe na largura */
+  .dows,.month { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; }
+  .dows div { text-align:center; font-size:12px; font-weight:600; color:var(--muted); padding-bottom:4px; }
+  .mcell { aspect-ratio:1/1.15; padding:0; border-radius:8px; min-height:0; position:relative;
+    display:flex; align-items:center; justify-content:center; }
+  .mcell .n { position:absolute; top:3px; left:0; right:0; text-align:center; font-size:12px; line-height:1; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .mcell .k { font-size:13px; font-weight:700; border-radius:6px; width:calc(100% - 6px); text-align:center; padding:5px 0; margin-top:8px; color:#18181b; }
+  .mcell.out { visibility:hidden; }
+  .mcell.today { border:2px solid var(--fg); }
+  .mcell.today .n { font-weight:800; color:var(--fg); }
+
+  .legend { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:14px; font-size:13px; color:var(--muted); justify-content:center; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:4px; vertical-align:-1px; }
+
+  /* importar */
+  .card { border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .card h2 { font-size:15px; margin:0 0 6px; }
+  .muted { color:var(--muted); font-size:13px; margin:0 0 8px; }
+  textarea { width:100%; min-height:130px; border:1px solid var(--border); border-radius:10px; padding:10px; background:var(--bg);
+    font-family:ui-monospace,Menlo,Consolas,monospace; font-size:14px; }
+  .row { display:flex; gap:8px; margin-top:10px; }
+  .row button { flex:1; }
+  .primary { background:var(--primary); color:var(--primary-fg); border-color:var(--primary); font-weight:600; }
+  .err { color:#dc2626; font-size:13px; margin-top:8px; }
+
+  /* folha para escolher o turno */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:30; }
+  .sheet { position:fixed; left:0; right:0; bottom:0; z-index:31; background:var(--bg); border-radius:18px 18px 0 0;
+    padding:16px 16px calc(16px + env(safe-area-inset-bottom)); max-width:520px; margin:0 auto; box-shadow:0 -8px 30px rgba(0,0,0,.25); }
+  .sheet h2 { font-size:17px; margin:0 0 2px; text-transform:capitalize; }
+  .chips { display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:8px; margin:14px 0 10px; }
+  .custom { display:flex; gap:8px; margin-bottom:10px; }
+  .custom input { flex:1; min-width:0; min-height:44px; border:1px solid var(--border); border-radius:10px; padding:0 12px; background:var(--bg); color:var(--fg); font:inherit; }
+  .chip { min-height:56px; padding:0; border:2px solid transparent; font-weight:700; font-size:17px; color:#18181b; border-radius:12px; }
+  .chip.on { border-color:var(--fg); }
+  .sheet .close { width:100%; }
+  @media (prefers-reduced-motion:no-preference) { .sheet { animation:up .18s ease-out; } @keyframes up { from { transform:translateY(24px); opacity:0 } } }
 </style>
 </head>
 <body>
-<header>
-  <h1>Minha agenda de turnos</h1>
-  <div class="row">
-    <button id="btnMode">Ver semana</button>
-    <button id="btnImport">Importar lista</button>
-    <button id="btnExport">Salvar backup</button>
-    <button id="btnRestore">Restaurar backup</button>
+<div class="wrap">
+  <div class="top">
+    <h1>Minha agenda</h1>
+    <details class="menu" id="menu">
+      <summary aria-label="Mais opções">&#8943;</summary>
+      <div class="panel">
+        <button id="btnImport">Importar lista</button>
+        <button id="btnExport">Salvar backup</button>
+        <button id="btnRestore">Restaurar backup</button>
+        <button id="btnClear" class="danger">Apagar tudo</button>
+      </div>
+    </details>
     <input type="file" id="restoreFile" accept="application/json,.json" class="hidden" aria-label="Arquivo de backup" />
-    <button id="btnClear">Apagar tudo</button>
   </div>
-</header>
 
-<main>
   <section id="importBox" class="card hidden" aria-labelledby="importTitle">
-    <h2 id="importTitle">Colar a lista</h2>
-    <p class="muted">Uma linha por dia, no formato <code>DD/MM/AAAA: código</code>. Códigos: 9a, 12a, T, H, O.</p>
-    <textarea id="importText" placeholder="16/11/2026: 9a&#10;17/11/2026: T&#10;18/11/2026: O" aria-label="Lista de turnos"></textarea>
-    <div class="row" style="margin-top:8px">
-      <button id="btnDoImport" class="primary">Importar</button>
+    <h2 id="importTitle">Importar lista</h2>
+    <p class="muted">Cole os dias no formato <b>DD/MM/AAAA: código</b>. Códigos: 9a, 12a, T, H, O.</p>
+    <textarea id="importText" placeholder="16/11/2026: 9a&#10;17/11/2026: T" aria-label="Lista de turnos"></textarea>
+    <div class="row">
       <button id="btnCancelImport">Cancelar</button>
+      <button id="btnDoImport" class="primary">Importar</button>
     </div>
     <div id="importMsg" class="err" role="alert"></div>
   </section>
 
-  <section class="card" aria-label="Calendário">
-    <div class="nav">
-      <button id="prev" aria-label="Mês anterior">&larr;</button>
-      <strong id="monthLabel"></strong>
-      <button id="next" aria-label="Próximo mês">&rarr;</button>
-    </div>
-    <div class="grid" id="dows"></div>
-    <div class="grid" id="calendar"></div>
-    <div class="legend" id="legend"></div>
-  </section>
+  <div class="seg" role="group" aria-label="Tipo de visão">
+    <button id="modeWeek" aria-pressed="true">Semana</button>
+    <button id="modeMonth" aria-pressed="false">Mês</button>
+  </div>
 
-  <section id="editBox" class="card hidden" aria-labelledby="editTitle">
-    <h2 id="editTitle"></h2>
-    <p class="muted" id="editInfo"></p>
-    <div class="row">
-      <select id="editCode" aria-label="Turno do dia" style="max-width:260px">
-        <option value="">Sem turno (Off)</option>
-        <option value="9a">9a (09:00)</option>
-        <option value="12a">12a (12:00)</option>
-        <option value="T">T Training 9-6</option>
-        <option value="H">H Feriado</option>
-        <option value="O">O Folga</option>
-      </select>
-      <button id="btnSaveDay" class="primary">Salvar dia</button>
-      <button id="btnCloseDay">Fechar</button>
-    </div>
-  </section>
-</main>
+  <div class="nav">
+    <button id="prev" aria-label="Anterior">&#8249;</button>
+    <strong id="title"></strong>
+    <button id="next" aria-label="Próximo">&#8250;</button>
+  </div>
+  <button id="todayBtn" class="today-btn hidden">Voltar para hoje</button>
+
+  <div id="weekView" class="week"></div>
+  <div id="monthView" class="hidden">
+    <div class="dows" id="dows"></div>
+    <div class="month" id="month"></div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+</div>
+
+<div id="overlay" class="overlay hidden"></div>
+<div id="sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <h2 id="sheetTitle"></h2>
+  <p class="muted" id="sheetInfo"></p>
+  <div class="chips" id="chips"></div>
+  <div class="custom">
+    <input id="customCode" maxlength="8" autocapitalize="characters" autocomplete="off" placeholder="Outro código (ex.: BH, 11a)" aria-label="Outro código" />
+    <button id="customUse" class="primary">Usar</button>
+  </div>
+  <div id="customErr" class="err" role="alert"></div>
+  <button id="sheetClose" class="close">Fechar</button>
+</div>
 
 <script>
 (function () {
   var KEY = "minha-agenda-de-turnos-v1";
-  var CODES = ["9a", "12a", "T", "H", "O"];
-  var LABELS = { "9a": "9a", "12a": "12a", T: "Training", H: "Feriado", O: "Folga" };
-  var TIMES = { "9a": "09:00", "12a": "12:00", T: "09:00 - 18:00" };
-  var DOWS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+  var PRESETS = ["9a","12a","11a","T","H","BH","O"];
+  var PRESET_COLOR = { "9a":"#fbcfe8", "12a":"#bbf7d0", "11a":"#fdba74", T:"#e879f9", H:"#fde047", BH:"#a3e635", O:"#bfdbfe", PL:"#f87171", "9-1":"#f0abfc", C:"#fed7aa" };
+  var PALETTE = ["#fca5a5","#fdba74","#fcd34d","#bef264","#6ee7b7","#67e8f9","#a5b4fc","#d8b4fe","#f9a8d4","#cbd5e1"];
+  var NAMES = { T:"Training", H:"Feriado", BH:"Bank holiday", O:"Off" };
+  var TIMES = { T:"09:00–18:00" };
+  function colorOf(c){
+    if (PRESET_COLOR[c]) return PRESET_COLOR[c];
+    var h=0; for (var i=0;i<c.length;i++) h=(h*31+c.charCodeAt(i))>>>0;
+    return PALETTE[h%PALETTE.length];
+  }
+  function nameOf(c){ return NAMES[c] || c; }
+  function timeOf(c){
+    if (TIMES[c]) return TIMES[c];
+    var m=/^(\d{1,2})a$/.exec(c);
+    return m ? String(m[1]).padStart(2,"0")+":00" : null;
+  }
+  // códigos conhecidos + qualquer código novo que apareça nos dados
+  function allCodes(){
+    var extra={}; Object.keys(data).forEach(function(k){ var c=data[k]; if (PRESETS.indexOf(c)===-1) extra[c]=1; });
+    var list=Object.keys(extra).sort();
+    var head=PRESETS.slice(0,-1);          // O (Off) vai por último
+    return head.concat(list, ["O"]);
+  }
+  var DOW_FULL = ["segunda","terça","quarta","quinta","sexta","sábado","domingo"];
+  var DOW_SHORT = ["S","T","Q","Q","S","S","D"];
   var MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  var MON_SHORT = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 
   var data = load();
-  var view = new Date();
-  view = new Date(view.getFullYear(), view.getMonth(), 1);
+  var mode = "week";
+  var anchor = new Date();           // dia de referência para semana/mês
   var selected = null;
-  var mode = "month";
-  var weekStart = startOfWeekD(new Date());
 
-  function pad(n) { return String(n).padStart(2, "0"); }
-  function iso(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; }
-  }
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) {}
-  }
-  function isRealDate(y, m, d) {
-    var x = new Date(y, m - 1, d);
-    return x.getFullYear() === y && x.getMonth() === m - 1 && x.getDate() === d;
-  }
-  function normalizeCode(raw) {
-    var t = raw.replace(/^[-\u2013\u2014:=]\s*(?=\S)/, "").toLowerCase().replace(/\s+/g, "");
-    if (t === "9a" || t === "12a") return t;
+  function pad(n){ return String(n).padStart(2,"0"); }
+  function iso(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+  function addD(d,n){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); }
+  function mondayOf(d){ return addD(d, -((d.getDay()+6)%7)); }
+  function parseKey(k){ var p=k.split("-").map(Number); return new Date(p[0],p[1]-1,p[2]); }
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch(e){ return {}; } }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(data)); } catch(e){} }
+  function codeOf(key){ return data[key] || "O"; }
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ---------- importar ---------- */
+  function isRealDate(y,m,d){ var x=new Date(y,m-1,d); return x.getFullYear()===y && x.getMonth()===m-1 && x.getDate()===d; }
+  function normalizeCode(raw){
+    var t = raw.replace(/^[-\u2013\u2014:=]\s*(?=\S)/,"").toLowerCase().replace(/\s+/g,"");
+    if (t==="-"||t==="") return "";
     if (/^(t|t9-6|training|training9-6|treino|treino9-6)$/.test(t)) return "T";
     if (/^(h|holiday|feriado)$/.test(t)) return "H";
     if (/^(o|off|folga)$/.test(t)) return "O";
-    if (t === "-") return "";
+    if (/^(bh|bankholiday)$/.test(t)) return "BH";
+    if (/^\d{1,2}a$/.test(t)) return t;              // 9a, 11a, 12a, ...
+    if (/^\d{1,2}-\d{1,2}$/.test(t)) return t;      // 9-1
+    if (/^[a-z]{1,3}$/.test(t)) return t.toUpperCase(); // BH, PL, C, ...
     return null;
   }
-  function parseImport(text) {
-    var out = {}, invalid = [];
-    var SPLIT = /(?<![\d\/.\-])(?=\d{4}-\d{2}-\d{2}\s*[:=;,\t\s]|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4}\s*[:=;,\t\s])/;
-    var ONE = /^\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})\s*(?:[:=;,\t]|\s)\s*(.*?)\s*$/;
-    text.split(/\r?\n/).forEach(function (line) {
-      if (!line.trim()) return;
-      line.split(SPLIT).forEach(function (piece) {
-        if (!piece.trim()) return;
-        var m = ONE.exec(piece);
-        var code = m ? normalizeCode(m[2]) : null;
-        if (!m || code === null) { invalid.push(piece.trim().slice(0, 60)); return; }
-        var y, mo, d, raw = m[1];
-        if (/^\d{4}/.test(raw)) { var p = raw.split("-").map(Number); y = p[0]; mo = p[1]; d = p[2]; }
-        else { var q = raw.split(/[\/.\-]/).map(Number); d = q[0]; mo = q[1]; y = q[2]; }
-        if (!isRealDate(y, mo, d)) { invalid.push(piece.trim().slice(0, 60)); return; }
-        out[y + "-" + pad(mo) + "-" + pad(d)] = code;
+  function parseImport(text){
+    var out={}, invalid=[];
+    var SPLIT=/(?<![\d\/.\-])(?=\d{4}-\d{2}-\d{2}\s*[:=;,\t\s]|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4}\s*[:=;,\t\s])/;
+    var ONE=/^\s*(\d{4}-\d{2}-\d{2}|\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{4})\s*(?:[:=;,\t]|\s)\s*(.*?)\s*$/;
+    text.split(/\r?\n/).forEach(function(line){
+      if(!line.trim()) return;
+      line.split(SPLIT).forEach(function(piece){
+        if(!piece.trim()) return;
+        var m=ONE.exec(piece), code=m?normalizeCode(m[2]):null;
+        if(!m||code===null){ invalid.push(piece.trim().slice(0,60)); return; }
+        var y,mo,d,raw=m[1];
+        if(/^\d{4}/.test(raw)){ var p=raw.split("-").map(Number); y=p[0];mo=p[1];d=p[2]; }
+        else { var q=raw.split(/[\/.\-]/).map(Number); d=q[0];mo=q[1];y=q[2]; }
+        if(!isRealDate(y,mo,d)){ invalid.push(piece.trim().slice(0,60)); return; }
+        out[y+"-"+pad(mo)+"-"+pad(d)] = code;
       });
     });
-    return { entries: out, invalid: invalid };
+    return { entries:out, invalid:invalid };
   }
 
-  var el = function (id) { return document.getElementById(id); };
+  /* ---------- desenho ---------- */
+  function render(){
+    var todayKey = iso(new Date());
+    renderLegend();
+    $("modeWeek").setAttribute("aria-pressed", mode==="week");
+    $("modeMonth").setAttribute("aria-pressed", mode==="month");
+    $("weekView").classList.toggle("hidden", mode!=="week");
+    $("monthView").classList.toggle("hidden", mode!=="month");
 
-  function renderLegend() {
-    el("legend").innerHTML = CODES.map(function (c) {
-      return '<span><i class="c-' + c + '"></i>' + c + (LABELS[c] && c !== "9a" && c !== "12a" ? " " + LABELS[c] : "") + "</span>";
+    if (mode==="week") {
+      var start = mondayOf(anchor), end = addD(start,6);
+      $("title").textContent = start.getDate()+" "+MON_SHORT[start.getMonth()]+" – "+end.getDate()+" "+MON_SHORT[end.getMonth()];
+      var html="";
+      for (var i=0;i<7;i++){
+        var d=addD(start,i), k=iso(d), c=codeOf(k);
+        var time = timeOf(c) ? "<small>"+timeOf(c)+"</small>" : "";
+        html += '<button class="wrow'+(k===todayKey?" today":"")+'" data-key="'+k+'" aria-label="'+DOW_FULL[i]+", "+d.getDate()+" de "+MONTHS[d.getMonth()]+", "+nameOf(c)+'">'
+          + '<span class="wdate"><span class="wnum">'+d.getDate()+'</span><span class="wname">'+DOW_FULL[i]+'</span></span>'
+          + '<span class="wpill" style="background:'+colorOf(c)+'">'+nameOf(c)+time+'</span></button>';
+      }
+      $("weekView").innerHTML = html;
+      $("todayBtn").classList.toggle("hidden", iso(mondayOf(new Date()))===iso(start));
+    } else {
+      var first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+      $("title").textContent = MONTHS[first.getMonth()]+" "+first.getFullYear();
+      $("dows").innerHTML = DOW_SHORT.map(function(x){ return "<div>"+x+"</div>"; }).join("");
+      var lead=(first.getDay()+6)%7, days=new Date(first.getFullYear(), first.getMonth()+1, 0).getDate();
+      var h="";
+      for (var j=0;j<lead;j++) h+='<div class="mcell out"></div>';
+      for (var n=1;n<=days;n++){
+        var dd=new Date(first.getFullYear(), first.getMonth(), n), kk=iso(dd), cc=codeOf(kk);
+        h += '<button class="mcell'+(kk===todayKey?" today":"")+'" data-key="'+kk+'" aria-label="'+n+" de "+MONTHS[dd.getMonth()]+", "+nameOf(cc)+'">'
+          + '<span class="n">'+n+'</span><span class="k" style="background:'+colorOf(cc)+'">'+cc+'</span></button>';
+      }
+      $("month").innerHTML = h;
+      var now=new Date();
+      $("todayBtn").classList.toggle("hidden", now.getFullYear()===first.getFullYear() && now.getMonth()===first.getMonth());
+    }
+  }
+
+  function renderLegend(){
+    $("legend").innerHTML = allCodes().map(function(c){
+      return '<span><i style="background:'+colorOf(c)+'"></i>'+(nameOf(c)===c?c:c+" "+nameOf(c))+"</span>";
     }).join("");
   }
 
-  function addD(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
-  function startOfWeekD(d) { return addD(d, -((d.getDay() + 6) % 7)); }
-  function parseKey(key) { var p = key.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
-  function cellHtml(d, outside) {
-    var key = iso(d);
-    var code = data[key];
-    var cls = "day";
-    if (outside) cls += " out";
-    if (key === iso(new Date())) cls += " today";
-    if (key === selected) cls += " sel";
-    var label = code ? code : (!outside ? "O" : "");
-    var badge = label ? '<span class="code c-' + label + '">' + label + "</span>" : "";
-    var wd = mode === "week" ? '<span class="wd">' + DOWS[(d.getDay() + 6) % 7] + "</span>" : "";
-    return '<button class="' + cls + '" data-key="' + key + '" aria-label="' + d.getDate() + " " + MONTHS[d.getMonth()] + ", " + (label || "sem turno") + '"><span class="num">' + d.getDate() + "</span>" + wd + badge + "</button>";
-  }
-  function renderCalendar() {
-    el("dows").innerHTML = DOWS.map(function (d) { return '<div class="dow">' + d + "</div>"; }).join("");
-    var html = "";
-    if (mode === "week") {
-      var end = addD(weekStart, 6);
-      el("monthLabel").textContent = weekStart.getDate() + "/" + pad(weekStart.getMonth() + 1) + " a " + end.getDate() + "/" + pad(end.getMonth() + 1) + " de " + end.getFullYear();
-      for (var i = 0; i < 7; i++) html += cellHtml(addD(weekStart, i), false);
-      el("calendar").classList.add("week");
-      el("dows").classList.add("hidden-week");
-      el("btnMode").textContent = "Ver mês";
-      el("btnMode").setAttribute("aria-pressed", "true");
-    } else {
-      el("monthLabel").textContent = MONTHS[view.getMonth()] + " " + view.getFullYear();
-      var first = new Date(view.getFullYear(), view.getMonth(), 1);
-      var start = addD(first, -((first.getDay() + 6) % 7));
-      for (var j = 0; j < 42; j++) {
-        var d = addD(start, j);
-        html += cellHtml(d, d.getMonth() !== view.getMonth());
-      }
-      el("calendar").classList.remove("week");
-      el("dows").classList.remove("hidden-week");
-      el("btnMode").textContent = "Ver semana";
-      el("btnMode").setAttribute("aria-pressed", "false");
-    }
-    el("calendar").innerHTML = html;
-  }
-
-  function openDay(key) {
+  /* ---------- escolher turno ---------- */
+  function openSheet(key){
     selected = key;
-    var parts = key.split("-").map(Number);
-    var d = new Date(parts[0], parts[1] - 1, parts[2]);
-    el("editTitle").textContent = d.getDate() + " de " + MONTHS[d.getMonth()] + " de " + d.getFullYear();
-    var code = data[key] || "";
-    el("editCode").value = code;
-    el("editInfo").textContent = code && TIMES[code] ? "Horário: " + TIMES[code] : "";
-    el("editBox").classList.remove("hidden");
-    renderCalendar();
-    el("editCode").focus();
+    var d=parseKey(key);
+    $("sheetTitle").textContent = DOW_FULL[(d.getDay()+6)%7]+", "+d.getDate()+" de "+MONTHS[d.getMonth()];
+    var cur=codeOf(key);
+    $("sheetInfo").textContent = timeOf(cur) ? "Horário: "+timeOf(cur) : nameOf(cur);
+    $("chips").innerHTML = allCodes().map(function(c){
+      return '<button class="chip'+(c===cur?" on":"")+'" style="background:'+colorOf(c)+'" data-code="'+c+'" aria-label="'+nameOf(c)+'">'+c+"</button>";
+    }).join("");
+    $("customCode").value=""; $("customErr").textContent="";
+    $("overlay").classList.remove("hidden");
+    $("sheet").classList.remove("hidden");
   }
-
-  el("calendar").addEventListener("click", function (e) {
-    var b = e.target.closest("button[data-key]");
-    if (b) openDay(b.getAttribute("data-key"));
+  function closeSheet(){
+    selected=null;
+    $("overlay").classList.add("hidden");
+    $("sheet").classList.add("hidden");
+  }
+  $("chips").addEventListener("click", function(e){
+    var b=e.target.closest("button[data-code]"); if(!b||!selected) return;
+    var c=b.getAttribute("data-code");
+    if (c==="O") delete data[selected]; else data[selected]=c;
+    save(); closeSheet(); render();
   });
-  el("prev").onclick = function () { if (mode === "week") weekStart = addD(weekStart, -7); else view = new Date(view.getFullYear(), view.getMonth() - 1, 1); renderCalendar(); };
-  el("next").onclick = function () { if (mode === "week") weekStart = addD(weekStart, 7); else view = new Date(view.getFullYear(), view.getMonth() + 1, 1); renderCalendar(); };
-  el("btnMode").onclick = function () {
-    mode = mode === "week" ? "month" : "week";
-    var anchor = selected ? parseKey(selected) : new Date();
-    if (mode === "week") weekStart = startOfWeekD(anchor);
-    else view = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
-    renderCalendar();
-  };
-  el("btnSaveDay").onclick = function () {
-    if (!selected) return;
-    var v = el("editCode").value;
-    if (v) data[selected] = v; else delete data[selected];
-    save();
-    el("editBox").classList.add("hidden");
-    selected = null;
-    renderCalendar();
-  };
-  el("btnCloseDay").onclick = function () {
-    el("editBox").classList.add("hidden");
-    selected = null;
-    renderCalendar();
-  };
-  el("btnImport").onclick = function () { el("importBox").classList.toggle("hidden"); el("importMsg").textContent = ""; };
-  el("btnCancelImport").onclick = function () { el("importBox").classList.add("hidden"); };
-  el("btnDoImport").onclick = function () {
-    var res = parseImport(el("importText").value);
-    var n = Object.keys(res.entries).length;
-    if (n === 0) {
-      el("importMsg").textContent = "Nenhuma linha válida. Use o formato DD/MM/AAAA: código.";
-      return;
-    }
-    Object.keys(res.entries).forEach(function (k) {
-      if (res.entries[k]) data[k] = res.entries[k]; else delete data[k];
-    });
-    save();
-    el("importText").value = "";
-    el("importBox").classList.add("hidden");
-    el("importMsg").textContent = "";
-    if (res.invalid.length) alert(n + " dias importados. Linhas ignoradas: " + res.invalid.length);
-    renderCalendar();
-  };
-  el("btnClear").onclick = function () {
-    if (confirm("Apagar todos os turnos salvos neste aparelho?")) { data = {}; save(); selected = null; el("editBox").classList.add("hidden"); renderCalendar(); }
-  };
-
-  el("btnExport").onclick = function () {
-    var payload = { app: "minha-agenda-de-turnos", version: 1, savedAt: new Date().toISOString(), days: data };
-    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    var stamp = iso(new Date());
-    a.href = url;
-    a.download = "backup-agenda-turnos-" + stamp + ".json";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1000);
-  };
-  el("btnRestore").onclick = function () { el("restoreFile").click(); };
-  el("restoreFile").onchange = function (e) {
-    var file = e.target.files && e.target.files[0];
-    e.target.value = "";
-    if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function () {
-      try {
-        var obj = JSON.parse(reader.result);
-        var days = obj && obj.app === "minha-agenda-de-turnos" && obj.days ? obj.days : null;
-        if (!days) throw new Error("formato");
-        var clean = {}, count = 0;
-        Object.keys(days).forEach(function (k) {
-          if (/^\d{4}-\d{2}-\d{2}$/.test(k) && CODES.indexOf(days[k]) !== -1) { clean[k] = days[k]; count++; }
-        });
-        if (!confirm("Restaurar o backup substitui os turnos atuais por " + count + " dias do arquivo. Continuar?")) return;
-        data = clean;
-        save();
-        selected = null;
-        el("editBox").classList.add("hidden");
-        renderCalendar();
-      } catch (err) {
-        alert("Este arquivo não é um backup válido desta agenda.");
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  // Pede ao navegador para não apagar os dados sem aviso (quando suportado).
-  if (navigator.storage && navigator.storage.persist) {
-    navigator.storage.persist().catch(function () {});
+  function useCustom(){
+    if(!selected) return;
+    var c=normalizeCode($("customCode").value);
+    if(c===null || c===""){ $("customErr").textContent="Código inválido. Exemplos: BH, 11a, 9-1, PL."; return; }
+    if(c==="O") delete data[selected]; else data[selected]=c;
+    save(); closeSheet(); render();
   }
+  $("customUse").onclick = useCustom;
+  $("customCode").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); useCustom(); } });
+  $("sheetClose").onclick = closeSheet;
+  $("overlay").onclick = closeSheet;
+  document.addEventListener("keydown", function(e){ if(e.key==="Escape") closeSheet(); });
+
+  function onDayClick(e){
+    var b=e.target.closest("button[data-key]"); if(b) openSheet(b.getAttribute("data-key"));
+  }
+  $("weekView").addEventListener("click", onDayClick);
+  $("month").addEventListener("click", onDayClick);
+
+  /* ---------- navegação ---------- */
+  $("modeWeek").onclick = function(){ mode="week"; render(); };
+  $("modeMonth").onclick = function(){ mode="month"; render(); };
+  $("prev").onclick = function(){
+    anchor = mode==="week" ? addD(anchor,-7) : new Date(anchor.getFullYear(), anchor.getMonth()-1, 1);
+    render();
+  };
+  $("next").onclick = function(){
+    anchor = mode==="week" ? addD(anchor,7) : new Date(anchor.getFullYear(), anchor.getMonth()+1, 1);
+    render();
+  };
+  $("todayBtn").onclick = function(){ anchor=new Date(); render(); };
+
+  // deslizar para os lados troca de semana/mês
+  var sx=null;
+  document.addEventListener("touchstart", function(e){ sx = e.touches.length===1 ? e.touches[0].clientX : null; }, {passive:true});
+  document.addEventListener("touchend", function(e){
+    if (sx===null || !$("sheet").classList.contains("hidden")) return;
+    var dx = e.changedTouches[0].clientX - sx; sx=null;
+    if (Math.abs(dx) > 70) { (dx<0 ? $("next") : $("prev")).click(); }
+  }, {passive:true});
+
+  /* ---------- menu ---------- */
+  function closeMenu(){ $("menu").removeAttribute("open"); }
+  $("btnImport").onclick = function(){ closeMenu(); $("importBox").classList.remove("hidden"); $("importMsg").textContent=""; $("importText").focus(); };
+  $("btnCancelImport").onclick = function(){ $("importBox").classList.add("hidden"); };
+  $("btnDoImport").onclick = function(){
+    var res=parseImport($("importText").value), keys=Object.keys(res.entries);
+    if(!keys.length){ $("importMsg").textContent="Nenhuma linha válida. Use o formato DD/MM/AAAA: código."; return; }
+    keys.forEach(function(k){ if(res.entries[k] && res.entries[k]!=="O") data[k]=res.entries[k]; else delete data[k]; });
+    save();
+    $("importText").value=""; $("importBox").classList.add("hidden"); $("importMsg").textContent="";
+    if(res.invalid.length) alert(keys.length+" dias importados. Linhas ignoradas: "+res.invalid.length);
+    var first=keys.sort()[0]; anchor=parseKey(first);
+    render();
+  };
+  $("btnClear").onclick = function(){
+    closeMenu();
+    if(confirm("Apagar todos os turnos salvos neste aparelho?")){ data={}; save(); render(); }
+  };
+  $("btnExport").onclick = function(){
+    closeMenu();
+    var payload={ app:"minha-agenda-de-turnos", version:1, savedAt:new Date().toISOString(), days:data };
+    var blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    var url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download="backup-agenda-turnos-"+iso(new Date())+".json";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); },1000);
+  };
+  $("btnRestore").onclick = function(){ closeMenu(); $("restoreFile").click(); };
+  $("restoreFile").onchange = function(e){
+    var file=e.target.files && e.target.files[0]; e.target.value=""; if(!file) return;
+    var r=new FileReader();
+    r.onload=function(){
+      try{
+        var obj=JSON.parse(r.result);
+        var days=obj && obj.app==="minha-agenda-de-turnos" && obj.days ? obj.days : null;
+        if(!days) throw new Error("formato");
+        var clean={}, n=0;
+        Object.keys(days).forEach(function(k){ if(/^\d{4}-\d{2}-\d{2}$/.test(k) && normalizeCode(String(days[k]))===days[k] && days[k]!=="O" && days[k]!==""){ clean[k]=days[k]; n++; } });
+        if(!confirm("Restaurar o backup substitui os turnos atuais por "+n+" dias do arquivo. Continuar?")) return;
+        data=clean; save(); render();
+      }catch(err){ alert("Este arquivo não é um backup válido desta agenda."); }
+    };
+    r.readAsText(file);
+  };
+  document.addEventListener("click", function(e){ if(!e.target.closest("#menu")) closeMenu(); });
+
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){});
 
   renderLegend();
-  renderCalendar();
+  render();
 })();
 </script>
 </body>
